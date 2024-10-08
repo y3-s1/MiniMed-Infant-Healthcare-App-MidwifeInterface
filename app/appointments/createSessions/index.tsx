@@ -1,34 +1,20 @@
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, VirtualizedList, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, VirtualizedList, StyleSheet, Alert } from 'react-native';
+import { addDoc, collection, doc } from 'firebase/firestore';
+import { db } from '@/config/FireBaseConfig';
 
 const areas = [
-  'Malabe',
-  'Kampala',
-  'Kibale',
-  'Jinja',
-  'Gulu',
-  'Kasese',
-  'Mbarara',
-  'Mubende',
-  'Mityana',
-  'Nakapi',
-  'Nakasongola',
-  'Nebbi',
-  'Ntungamo',
-  'Rakai',
-  'Sembabule',
-
+  'Malabe', 'Kampala', 'Kibale', 'Jinja', 'Gulu', 'Kasese', 'Mbarara', 'Mubende', 'Mityana',
+  'Nakapi', 'Nakasongola', 'Nebbi', 'Ntungamo', 'Rakai', 'Sembabule',
 ];
 
 const clinics = [
-  'Kaduwela',
-  'Malabe',
-  'Nugegoda',
-  'Kampala',
-  'Kibale',
-  'Jinja',
+  'Kaduwela', 'Malabe', 'Nugegoda', 'Kampala', 'Kibale', 'Jinja',
 ];
+
+// Manually setting the midwife document ID (replace with dynamic ID once login is implemented)
+const midwifeDocumentID = 'DZ3G0ZOnt8KzFRD3MI02';
 
 export default function CreateSession() {
   const { selectedDate } = useLocalSearchParams();
@@ -156,12 +142,25 @@ export default function CreateSession() {
     );
   };
 
+  // Function to save the session data to Firestore under the midwife's sub-collection
+  const createSession = async () => {
+    try {
+      const midwifeDocRef = doc(db, 'Midwives', midwifeDocumentID);
+      const sessionsCollectionRef = collection(midwifeDocRef, 'MidwifeSessions');
 
-  console.log("selectedDate : ",selectedDate );
-  console.log("startTime : ",startTime );
-  console.log(" endTime: ", endTime);
-  console.log(" sessionType: ", sessionType);
-  console.log(" selectedLocation: ", selectedLocation);
+      await addDoc(sessionsCollectionRef, {
+        selectedDate,
+        startTime,
+        endTime,
+        sessionType,
+        selectedLocation,
+      });
+      Alert.alert('Success', 'Session created successfully!');
+    } catch (error) {
+      console.error('Error creating session:', error);
+      Alert.alert('Error', 'Failed to create session.');
+    }
+  };
 
   return (
     <View className="flex-1 p-4">
@@ -183,18 +182,13 @@ export default function CreateSession() {
       <View className="bg-blue-400 my-2 mx-8 flex justify-center rounded-lg">
         <Text className='ml-3 mt-3 text-lg font-semibold text-white'>Type</Text>
         <View className="flex-row justify-center mb-5 mt-1 bg-blue-300 w-3/6 mx-auto rounded-full">
-          {/* Navigation buttons */}
           <TouchableOpacity
             onPress={() => setSessionType('Home Visit')}
             className={`px-6 py-2 rounded-full ${
               sessionType === 'Home Visit' ? 'bg-white' : 'bg-blue-300'
             }`}
           >
-            <Text
-              className={`${
-                sessionType === 'Home Visit' ? 'text-blue-500' : 'text-white'
-              } font-poppins`}
-            >
+            <Text className={`${sessionType === 'Home Visit' ? 'text-blue-500' : 'text-white'} font-poppins`}>
               Home Visit
             </Text>
           </TouchableOpacity>
@@ -205,28 +199,19 @@ export default function CreateSession() {
               sessionType === 'Clinic' ? 'bg-white' : 'bg-blue-300'
             }`}
           >
-            <Text
-              className={`${
-                sessionType === 'Clinic' ? 'text-blue-500' : 'text-white'
-              } font-poppins`}
-            >
+            <Text className={`${sessionType === 'Clinic' ? 'text-blue-500' : 'text-white'} font-poppins`}>
               Clinic
             </Text>
           </TouchableOpacity>
-
         </View>
       </View>
 
       {/* Location Selection (Areas or Clinics) */}
       <Text className="text-lg my-2">{sessionType === 'Home Visit' ? 'Select Area' : 'Select Clinic'}</Text>
-      {sessionType === 'Home Visit' ? (
-        <LocationSelector locations={areas} />
-      ) : (
-        <LocationSelector locations={clinics} />
-      )}
+      {sessionType === 'Home Visit' ? <LocationSelector locations={areas} /> : <LocationSelector locations={clinics} />}
 
       {/* Create Session Button */}
-      <TouchableOpacity className="bg-blue-500 p-4 rounded-lg mt-3 items-center mb-5" onPress={() => console.log('Session created')}>
+      <TouchableOpacity className="bg-blue-500 p-4 rounded-lg mt-3 items-center mb-5" onPress={createSession}>
         <Text className="text-white text-lg">Create Session</Text>
       </TouchableOpacity>
     </View>
