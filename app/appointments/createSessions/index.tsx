@@ -24,6 +24,7 @@ export default function CreateSession() {
   const [selectedLocation, setSelectedLocation] = useState('Malabe');
   const [startTime, setStartTime] = useState('7:00 AM');
   const [endTime, setEndTime] = useState('7:30 AM');
+  const [noOfSlots, setNoOfSlots] = useState(0);
 
   useEffect(() => {
     if (typeof selectedDate === 'string') {
@@ -78,6 +79,38 @@ export default function CreateSession() {
   };
 
   const timeSlots = generateTimeSlots();
+
+
+  // Helper function to convert time to minutes
+  const timeToMinutes = (time: string) => {
+    const [hours, minutes, period] = time.match(/(\d+):(\d+)\s*(AM|PM)/i)?.slice(1) || [];
+    let totalMinutes = parseInt(hours) * 60 + parseInt(minutes);
+
+    if (period.toUpperCase() === 'PM' && hours !== '12') {
+      totalMinutes += 12 * 60; // Convert PM hours to 24-hour format
+    } else if (period.toUpperCase() === 'AM' && hours === '12') {
+      totalMinutes -= 12 * 60; // Handle 12 AM case
+    }
+
+    return totalMinutes;
+  };
+
+  // Calculate the number of slots (30 minutes each) between startTime and endTime
+  const calculateNoOfSlots = () => {
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+    const slotDuration = 30;
+
+    const differenceInMinutes = endMinutes - startMinutes;
+    const slots = Math.max(Math.floor(differenceInMinutes / slotDuration), 0);
+    setNoOfSlots(slots);
+  };
+
+  useEffect(() => {
+    calculateNoOfSlots();
+  }, [startTime, endTime]);
+
+
 
   const getItem = (_data: unknown, index: number) => ({
     id: timeSlots[index],
@@ -149,11 +182,13 @@ export default function CreateSession() {
       const sessionsCollectionRef = collection(midwifeDocRef, 'MidwifeSessions');
 
       await addDoc(sessionsCollectionRef, {
-        selectedDate,
+        date:selectedDate,
         startTime,
         endTime,
         sessionType,
-        selectedLocation,
+        location:selectedLocation,
+        noOfSlots,
+        bookedSlots:0,
       });
       Alert.alert('Success', 'Session created successfully!');
     } catch (error) {
