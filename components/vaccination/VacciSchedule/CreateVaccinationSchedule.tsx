@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, TextInput, FlatList, StyleSheet } from 'r
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 
-
 const CreateVaccinationSchedule = () => {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -16,38 +15,33 @@ const CreateVaccinationSchedule = () => {
   const [minAge, setMinAge] = useState('');
   const [maxAge, setMaxAge] = useState('');
   const [searchText, setSearchText] = useState('');
+  const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);  // For tracking selected participants
 
   const participants = [
     { name: 'Onara Yenumi', age: 4, location: 'Raddolugama', lastVaccine: 'OPV 1 (03-04)' },
     { name: 'Shenash', age: 5, location: 'Raddolugama', lastVaccine: 'OPV 1 (03-04)' },
     { name: 'Kasuni Amaya', age: 4, location: 'Raddolugama', lastVaccine: 'OPV 1 (03-04)' },
     { name: 'Yenumi', age: 4, location: 'Raddolugama', lastVaccine: 'OPV 1 (03-04)' },
-    { name: 'kumara', age: 5, location: 'Raddolugama', lastVaccine: 'OPV 1 (03-04)' },
+    { name: 'Kumara', age: 5, location: 'Raddolugama', lastVaccine: 'OPV 1 (03-04)' },
     { name: 'Amaya', age: 4, location: 'Raddolugama', lastVaccine: 'OPV 1 (03-04)' },
   ];
 
   const handleDateChange = (event: any, selectedDate: any) => {
     setShowDatePicker(false);
-    if (selectedDate) {
-      setDate(selectedDate);
-    }
+    if (selectedDate) setDate(selectedDate);
   };
 
   const handleStartTimeChange = (event: any, selectedTime: any) => {
     setShowStartTimePicker(false);
-    if (selectedTime) {
-      setStartTime(selectedTime);
-    }
+    if (selectedTime) setStartTime(selectedTime);
   };
 
   const handleEndTimeChange = (event: any, selectedTime: any) => {
     setShowEndTimePicker(false);
-    if (selectedTime) {
-      setEndTime(selectedTime);
-    }
+    if (selectedTime) setEndTime(selectedTime);
   };
 
-  // Filter participants based on age range input
+  // Filter participants based on age range input and search text
   const filteredParticipants = participants.filter(participant => {
     if (minAge && maxAge) {
       return (
@@ -58,6 +52,15 @@ const CreateVaccinationSchedule = () => {
     }
     return participant.name.toLowerCase().includes(searchText.toLowerCase());
   });
+
+  // Handle participant selection toggle
+  const toggleParticipantSelection = (participantName: string) => {
+    if (selectedParticipants.includes(participantName)) {
+      setSelectedParticipants(selectedParticipants.filter(name => name !== participantName));
+    } else {
+      setSelectedParticipants([...selectedParticipants, participantName]);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -121,25 +124,25 @@ const CreateVaccinationSchedule = () => {
       <Text style={styles.label}>Centre</Text>
       <View style={styles.centerRow}>
         <TouchableOpacity onPress={() => setSelectedCenter('Kaduwela')} style={selectedCenter === 'Kaduwela' ? styles.selectedButton : styles.centerButton}>
-          <Text onPress={() => setSelectedCenter('Kaduwela')} style={selectedCenter === 'Kaduwela' ? styles.selectedCenterText : styles.centerText}>Kaduwela</Text>
+          <Text style={selectedCenter === 'Kaduwela' ? styles.selectedCenterText : styles.centerText}>Kaduwela</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setSelectedCenter('Malabe')} style={selectedCenter === 'Malabe' ? styles.selectedButton : styles.centerButton}>
-          <Text onPress={() => setSelectedCenter('Malabe')} style={selectedCenter === 'Malabe' ? styles.selectedCenterText : styles.centerText}>Malabe</Text>
+          <Text style={selectedCenter === 'Malabe' ? styles.selectedCenterText : styles.centerText}>Malabe</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setSelectedCenter('Biyagama')} style={selectedCenter === 'Biyagama' ? styles.selectedButton : styles.centerButton}>
-          <Text onPress={() => setSelectedCenter('Biyagama')} style={selectedCenter === 'Biyagama' ? styles.selectedCenterText : styles.centerText}>Biyagama</Text>
+          <Text style={selectedCenter === 'Biyagama' ? styles.selectedCenterText : styles.centerText}>Biyagama</Text>
         </TouchableOpacity>
       </View>
 
       {/* Search and Filter Participants by Age Range */}
       <Text style={styles.label}>Select Participants</Text>
-          {/* Search Participant */}
-          <TextInput
-            placeholder="Search Participant"
-            value={searchText}
-            onChangeText={setSearchText}
-            style={styles.searchInput}
-          />
+      {/* Search Participant */}
+      <TextInput
+        placeholder="Search Participant"
+        value={searchText}
+        onChangeText={setSearchText}
+        style={styles.searchInput}
+      />
       <Text style={styles.filterLabel}>Filter by Age</Text>
       <View style={styles.ageInputRow}>
         <TextInput
@@ -158,20 +161,26 @@ const CreateVaccinationSchedule = () => {
         />
       </View>
 
-
-      {/* Display Filtered Participants */}
-      <FlatList
+      {/* Display Filtered Participants - Limit to 5 items displayed */}
+        <FlatList
         data={filteredParticipants}
         keyExtractor={(item) => item.name}
-        nestedScrollEnabled={true}
+        nestedScrollEnabled={false}
+        initialNumToRender={5}  
+        style={styles.flatList}  // Ensure height is appropriately set for FlatList to manage scrolling
         renderItem={({ item }) => (
-          <View style={styles.participantCard}>
-            <Text>{item.name}</Text>
-            <Text>{item.age} months</Text>
-            <Text>Last Vaccination - {item.lastVaccine}</Text>
-          </View>
+            <TouchableOpacity onPress={() => toggleParticipantSelection(item.name)}>
+            <View style={[styles.participantCard, selectedParticipants.includes(item.name) && styles.selectedParticipantCard]}>
+                <Text>{item.name}</Text>
+                <Text>{item.age} months</Text>
+                <Text>Last Vaccination - {item.lastVaccine}</Text>
+            </View>
+            </TouchableOpacity>
         )}
-      />
+        ListEmptyComponent={() => <Text>No participants found.</Text>}
+        showsVerticalScrollIndicator={false}
+        horizontal
+        />
 
       {/* Create Vaccination Button */}
       <TouchableOpacity style={styles.createButton}>
@@ -215,7 +224,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   centerText: {
-
+    // Default center text
   },
   selectedCenterText: {
     color: '#ffffff',
@@ -256,6 +265,9 @@ const styles = StyleSheet.create({
     padding: 10,
     marginVertical: 10,
   },
+  flatList: {
+    height: 300,  // Limit height to allow scrolling with only 5 items visible at once
+  },
   participantCard: {
     padding: 10,
     borderWidth: 1,
@@ -263,11 +275,16 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 10,
   },
+  selectedParticipantCard: {
+    borderColor: '#3b82f6',
+    backgroundColor: '#e6f0ff',
+  },
   createButton: {
     padding: 15,
     backgroundColor: '#3b82f6',
     borderRadius: 8,
     alignItems: 'center',
+    marginTop: 20,
   },
   createButtonText: {
     color: '#fff',
