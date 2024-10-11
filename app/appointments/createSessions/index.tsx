@@ -1,7 +1,7 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, SafeAreaView, VirtualizedList, StyleSheet, Alert } from 'react-native';
-import { addDoc, collection, doc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/config/FireBaseConfig';
 
 const areas = [
@@ -25,6 +25,7 @@ export default function CreateSession() {
   const [startTime, setStartTime] = useState('7:00 AM');
   const [endTime, setEndTime] = useState('7:30 AM');
   const [noOfSlots, setNoOfSlots] = useState(0);
+  const [sessionsForSelectedDate, setSessionsForSelectedDate] = useState<any[]>([]);
 
   useEffect(() => {
     if (typeof selectedDate === 'string') {
@@ -112,6 +113,59 @@ export default function CreateSession() {
 
 
 
+  // Fetch sessions for the selected date from Firestore
+  const fetchSessionsForSelectedDate = async () => {
+    try {
+      const midwifeDocRef = doc(db, 'Midwives', midwifeDocumentID);
+      const sessionsCollectionRef = collection(midwifeDocRef, 'MidwifeSessions');
+      const q = query(sessionsCollectionRef, where('date', '==', selectedDate));
+      const querySnapshot = await getDocs(q);
+
+      const sessions = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setSessionsForSelectedDate(sessions);
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedDate) {
+      fetchSessionsForSelectedDate();
+    }
+  }, [selectedDate]);
+
+
+
+  // Check if the selected time range conflicts with existing sessions
+  const checkForConflicts = (newStartTime: string, newEndTime: string) => {
+    const newStartMinutes = timeToMinutes(newStartTime);
+    const newEndMinutes = timeToMinutes(newEndTime);
+
+    for (const session of sessionsForSelectedDate) {
+      const sessionStartMinutes = timeToMinutes(session.startTime);
+      const sessionEndMinutes = timeToMinutes(session.endTime);
+
+      // Check if new session overlaps with any existing session
+      if (
+        (newStartMinutes < sessionEndMinutes && newStartMinutes >= sessionStartMinutes) ||
+        (newEndMinutes > sessionStartMinutes && newEndMinutes <= sessionEndMinutes) ||
+        (newStartMinutes <= sessionStartMinutes && newEndMinutes >= sessionEndMinutes)
+      ) {
+        return true; // Conflict found
+      }
+    }
+
+    return false; // No conflict
+  };
+
+
+
+
+
   const getItem = (_data: unknown, index: number) => ({
     id: timeSlots[index],
     title: timeSlots[index],
@@ -177,24 +231,39 @@ export default function CreateSession() {
 
   // Function to save the session data to Firestore under the midwife's sub-collection
   const createSession = async () => {
-    try {
-      const midwifeDocRef = doc(db, 'Midwives', midwifeDocumentID);
-      const sessionsCollectionRef = collection(midwifeDocRef, 'MidwifeSessions');
-
-      await addDoc(sessionsCollectionRef, {
-        date:selectedDate,
-        startTime,
-        endTime,
-        sessionType,
-        location:selectedLocation,
-        noOfSlots,
-        bookedSlots:0,
-      });
-      Alert.alert('Success', 'Session created successfully!');
-    } catch (error) {
-      console.error('Error creating session:', error);
-      Alert.alert('Error', 'Failed to create session.');
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+    // Validate that the start time is before the end time
+    if (startMinutes >= endMinutes) {
+      Alert.alert('Error', 'Start time must be earlier than end time.');
+      return; // Exit early if the validation fails
     }
+    const conflict = checkForConflicts(startTime, endTime);
+      if (conflict) {
+        Alert.alert('Error', 'Selected time conflicts with another session.');
+      }else{
+        try {
+          const midwifeDocRef = doc(db, 'Midwives', midwifeDocumentID);
+          const sessionsCollectionRef = collection(midwifeDocRef, 'MidwifeSessions');
+    
+          await addDoc(sessionsCollectionRef, {
+            date:selectedDate,
+            startTime,
+            endTime,
+            sessionType,
+            location:selectedLocation,
+            noOfSlots,
+            bookedSlots:[],
+          });
+          Alert.alert('Success', 'Session created successfully!');
+          router.navigate({
+            pathname: '/appointments/sheduleSessions',
+        });
+        } catch (error) {
+          console.error('Error creating session:', error);
+          Alert.alert('Error', 'Failed to create session.');
+        }
+      }
   };
 
   return (

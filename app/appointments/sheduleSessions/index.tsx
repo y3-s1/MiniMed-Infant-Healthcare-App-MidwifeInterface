@@ -14,7 +14,7 @@ interface Session {
   startTime: string;
   endTime: string;
   location: string;
-  bookedSlots: number;
+  bookedSlots: string[];
   sessionType: string;
   date: string;
   noOfSlots: number;
@@ -55,25 +55,31 @@ export default function ScheduleSessions() {
   }, []);
 
   // Fetch sessions from Firestore for the selected date and midwife
-  // Function to fetch sessions
   const fetchSessions = async (date: string) => {
     setLoading(true); // Start loading
-
+  
     try {
       // Reference the midwife's sessions collection
       const sessionsRef = collection(db, `Midwives/${midwifeDocumentID}/MidwifeSessions`);
-
+  
       // Query sessions based on the selected date
       const q = query(sessionsRef, where('date', '==', date));
       const querySnapshot = await getDocs(q);
-
-      const fetchedSessions: Session[] = querySnapshot.docs.map((doc) => ({
+  
+      let fetchedSessions: Session[] = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as Session[];
-
-      console.log("Fetched sessions:", fetchedSessions);
-
+  
+      // Sort the sessions by startTime in ascending order
+      fetchedSessions = fetchedSessions.sort((a, b) => {
+        const startMinutesA = timeToMinutes(a.startTime);
+        const startMinutesB = timeToMinutes(b.startTime);
+        return startMinutesA - startMinutesB;
+      });
+  
+      console.log("Fetched and sorted sessions:", fetchedSessions);
+  
       setFilteredSessions(fetchedSessions);
     } catch (error) {
       console.error("Error fetching sessions:", error);
@@ -81,6 +87,7 @@ export default function ScheduleSessions() {
       setLoading(false); // Stop loading once data is fetched
     }
   };
+  
 
   // Fetch sessions when the selected date changes
   useEffect(() => {
@@ -132,17 +139,31 @@ export default function ScheduleSessions() {
     }
   };
 
+  const timeToMinutes = (time: string): number => {
+    const [timePart, modifier] = time.split(' '); // Split time and AM/PM
+    const [hours, minutes] = timePart.split(':').map(Number); // Split hours and minutes
+  
+    let totalMinutes = (hours % 12) * 60 + minutes; // Convert hours and minutes to total minutes
+    if (modifier === 'PM') {
+      totalMinutes += 12 * 60; // Add 12 hours if PM
+    }
+  
+    return totalMinutes;
+  };
+  
+
   // Define the render function for sessions
   const renderSession: ListRenderItem<Session> = ({ item }) => (
     <View className="bg-white p-4 rounded-lg mb-4 border border-gray-300">
       <View className="flex-row justify-between">
         <View>
-          <Text className="text-lg mb-2">{item.startTime}  -  {item.endTime}</Text>
+          <Text className="text-lg mb-2">{item.startTime} - {item.endTime}</Text>
           {/* Conditionally append "clinic" or "area" to the location based on sessionType */}
           <Text className="text-lg mb-2">
-            {item.location} {item.sessionType === 'Clinic' ? 'Clinic' : item.sessionType === 'Home Visit' ? 'Area' : ''}
+            {item.location} {item.sessionType === 'Clinic' ? 'Clinic' : item.sessionType === 'Home Visit' ? 'Area Home Visit' : ''}
           </Text>
-          <Text className="text-lg mb-2">Booked Slots:  {item.bookedSlots} / {item.noOfSlots}</Text>
+          {/* Count the number of booked slots using item.bookedSlots.length */}
+          <Text className="text-lg mb-2">Booked Slots: {item.bookedSlots.length} / {item.noOfSlots}</Text>
         </View>
         <View className="flex justify-between">
           <View className="m-2 mx-5 items-end">
@@ -167,6 +188,7 @@ export default function ScheduleSessions() {
       </View>
     </View>
   );
+
   
   
 
