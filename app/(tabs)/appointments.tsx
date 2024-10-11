@@ -27,13 +27,23 @@ export default function Appointments() {
           <Text style={styles.cardText}>Schedule Sessions</Text>
         </TouchableOpacity>
 
-        {/* <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('upcomingAppointments')}>
+        <TouchableOpacity style={styles.card} 
+          onPress={() => router.navigate({
+            pathname: '/appointments/upcomingAppointments',
+            // params: {},
+          })}
+        >
           <Text style={styles.cardText}>Upcoming Appointments</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('completedAppointments')}>
-          <Text style={styles.cardText}>Completed Appointments</Text>
-        </TouchableOpacity> */}
+        <TouchableOpacity style={styles.card} 
+          onPress={() => router.navigate({
+            pathname: '/appointments/appointmentsHistory',
+            // params: {},
+          })}
+        >
+          <Text style={styles.cardText}>Appointments History</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
