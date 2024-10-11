@@ -276,8 +276,8 @@ export default function ScheduleSessions() {
         <View className="flex-row justify-between mb-3">
           <Text className="text-lg font-semibold">Date</Text>
           <View className="flex-row items-center">
-            <Text className="text-lg">{selectedMonth}</Text>
-            <AntDesign name="right" size={24} color="black" />
+            <Text className="text-lg pr-2">{selectedMonth}</Text>
+            {/* <AntDesign name="right" size={24} color="black" /> */}
           </View>
         </View>
         <FlatList

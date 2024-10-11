@@ -283,7 +283,7 @@ export default function CreateSession() {
       <TimeSelector selectedTime={endTime} setTime={setEndTime} />
 
       {/* Session Type Toggle */}
-      <View className="bg-blue-400 my-2 mx-8 flex justify-center rounded-lg">
+      <View className="bg-blue-400 my-2 mx-8 mt-10 flex mb-5 justify-center rounded-lg">
         <Text className='ml-3 mt-3 text-lg font-semibold text-white'>Type</Text>
         <View className="flex-row justify-center mb-5 mt-1 bg-blue-300 w-3/6 mx-auto rounded-full">
           <TouchableOpacity
@@ -324,7 +324,7 @@ export default function CreateSession() {
 
 const styles = StyleSheet.create({
   timeSelectorContainer: {
-    flex: 1,
+    paddingVertical: 10,
   },
   timeSlot: {
     backgroundColor: '#ffffff',
