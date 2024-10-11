@@ -14,9 +14,14 @@ export default function Appointments() {
 
       {/* Navigation Cards */}
       <View style={styles.cardsContainer}>
-        {/* <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('todaySessions')}>
+        <TouchableOpacity style={styles.card} 
+          onPress={() => router.navigate({
+            pathname: '/appointments/todaySessions',
+            // params: { vaccineId: item.id, status: item.status },  
+          })}
+        >
           <Text style={styles.cardText}>Today's Sessions</Text>
-        </TouchableOpacity> */}
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} 
           onPress={() => router.navigate({
