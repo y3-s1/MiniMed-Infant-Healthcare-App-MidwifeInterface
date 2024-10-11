@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, ListRenderItem } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, ListRenderItem, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { router, useFocusEffect } from 'expo-router';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { db } from '../../../config/FireBaseConfig'; // Ensure the correct Firebase config path
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
 
 // Define the type for the session data
 interface Session {
@@ -20,12 +20,12 @@ interface Session {
   noOfSlots: number;
 }
 
-// Function to generate the next 5 days including today
-const getNextFiveDays = () => {
+// Function to generate the next 14 days including today
+const getNextFourteenDays = () => {
   const dates = [];
   const today = new Date();
 
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 14; i++) {
     const nextDay = new Date(today);
     nextDay.setDate(today.getDate() + i);
 
@@ -46,8 +46,8 @@ export default function ScheduleSessions() {
   const [selectedMonth, setSelectedMonth] = useState<string>(''); // State for month
   const midwifeDocumentID = 'DZ3G0ZOnt8KzFRD3MI02'; // Midwife ID, adjust as needed
 
-  // Generate the next 5 days on component mount
-  const dates = getNextFiveDays();
+  // Generate the next 14 days on component mount
+  const dates = getNextFourteenDays();
 
   // Set the default selected date to today (first item in the dates array)
   useEffect(() => {
@@ -150,6 +150,55 @@ export default function ScheduleSessions() {
   
     return totalMinutes;
   };
+
+
+  // Function to handle session deletion with confirmation
+  const deleteSession = (sessionId: string) => {
+    Alert.alert(
+      'Confirm Deletion',
+      'Are you sure you want to delete this session?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, `Midwives/${midwifeDocumentID}/MidwifeSessions`, sessionId));
+              // After deletion, refetch the sessions to update the list
+              Alert.alert('Success', 'Session deleted successfully');
+              fetchSessions(selectedDate); // Make sure `selectedDate` is available in scope
+            } catch (error) {
+              console.error("Error deleting session:", error);
+              Alert.alert('Error', 'Failed to delete the session');
+            }
+          },
+          style: 'destructive', // Use the destructive style for delete buttons
+        },
+      ],
+      { cancelable: true } // User can dismiss the alert by clicking outside it
+    );
+  };
+
+
+  // Function to handle session editing (navigate to the edit screen)
+  const editSession = (session: Session) => {
+    router.navigate({
+      pathname: '/appointments/editSessions',
+      params: {
+        sessionId: session.id,
+        startTime: session.startTime,
+        endTime: session.endTime,
+        location: session.location,
+        bookedSlots: session.bookedSlots,
+        sessionType: session.sessionType,
+        date: session.date,
+        noOfSlots: session.noOfSlots,
+      },
+    });
+  };
   
 
   // Define the render function for sessions
@@ -177,11 +226,11 @@ export default function ScheduleSessions() {
             )}
           </View>
           <View className="flex-row justify-between m-2 mx-5 gap-5">
-            <TouchableOpacity>
-              <Text className="text-blue-500 font-bold">Edit</Text>
+            <TouchableOpacity onPress={() => editSession(item)}>
+              <Text className="text-white font-bold bg-blue-400 p-2 px-4 rounded-lg">Edit</Text>
             </TouchableOpacity>
-            <TouchableOpacity>
-              <Text className="text-red-400 font-bold">Delete</Text>
+            <TouchableOpacity onPress={() => deleteSession(item.id)}>
+              <Text className="text-white font-bold bg-red-500 p-2 rounded-lg">Delete</Text>
             </TouchableOpacity>
           </View>
         </View>
