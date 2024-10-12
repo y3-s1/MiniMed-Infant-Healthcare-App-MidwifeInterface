@@ -1,6 +1,7 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import Feather from '@expo/vector-icons/Feather';
 import { Tabs } from 'expo-router';
 
 export default function TabLayout() {
@@ -25,6 +26,14 @@ export default function TabLayout() {
         options={{
           title: 'vaccination',
           tabBarIcon: ({ color }) => <MaterialIcons name="vaccines" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="events"
+        options={{
+          title: 'Events',
+          tabBarIcon: ({ color }) => <Feather name="calendar" size={24} color={color} />,
+          headerShown:false
         }}
       />
     </Tabs>

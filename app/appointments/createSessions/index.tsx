@@ -1,16 +1,15 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, SafeAreaView, VirtualizedList, StyleSheet, Alert } from 'react-native';
-import { addDoc, collection, doc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/config/FireBaseConfig';
 
 const areas = [
-  'Malabe', 'Kampala', 'Kibale', 'Jinja', 'Gulu', 'Kasese', 'Mbarara', 'Mubende', 'Mityana',
-  'Nakapi', 'Nakasongola', 'Nebbi', 'Ntungamo', 'Rakai', 'Sembabule',
+  'Malabe', 'Gampaha', 'Kaduwela', 'Biyagama', 'Kelaniya', 'Baththaramulla', 'Rajagiriya',
 ];
 
 const clinics = [
-  'Kaduwela', 'Malabe', 'Nugegoda', 'Kampala', 'Kibale', 'Jinja',
+  'Kaduwela', 'Malabe', 'Nugegoda', 'Biyagama', 'Rajagiriya', 'Kelaniya',
 ];
 
 // Manually setting the midwife document ID (replace with dynamic ID once login is implemented)
@@ -24,6 +23,8 @@ export default function CreateSession() {
   const [selectedLocation, setSelectedLocation] = useState('Malabe');
   const [startTime, setStartTime] = useState('7:00 AM');
   const [endTime, setEndTime] = useState('7:30 AM');
+  const [noOfSlots, setNoOfSlots] = useState(0);
+  const [sessionsForSelectedDate, setSessionsForSelectedDate] = useState<any[]>([]);
 
   useEffect(() => {
     if (typeof selectedDate === 'string') {
@@ -79,6 +80,91 @@ export default function CreateSession() {
 
   const timeSlots = generateTimeSlots();
 
+
+  // Helper function to convert time to minutes
+  const timeToMinutes = (time: string) => {
+    const [hours, minutes, period] = time.match(/(\d+):(\d+)\s*(AM|PM)/i)?.slice(1) || [];
+    let totalMinutes = parseInt(hours) * 60 + parseInt(minutes);
+
+    if (period.toUpperCase() === 'PM' && hours !== '12') {
+      totalMinutes += 12 * 60; // Convert PM hours to 24-hour format
+    } else if (period.toUpperCase() === 'AM' && hours === '12') {
+      totalMinutes -= 12 * 60; // Handle 12 AM case
+    }
+
+    return totalMinutes;
+  };
+
+  // Calculate the number of slots (30 minutes each) between startTime and endTime
+  const calculateNoOfSlots = () => {
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+    const slotDuration = 30;
+
+    const differenceInMinutes = endMinutes - startMinutes;
+    const slots = Math.max(Math.floor(differenceInMinutes / slotDuration), 0);
+    setNoOfSlots(slots);
+  };
+
+  useEffect(() => {
+    calculateNoOfSlots();
+  }, [startTime, endTime]);
+
+
+
+  // Fetch sessions for the selected date from Firestore
+  const fetchSessionsForSelectedDate = async () => {
+    try {
+      const midwifeDocRef = doc(db, 'Midwives', midwifeDocumentID);
+      const sessionsCollectionRef = collection(midwifeDocRef, 'MidwifeSessions');
+      const q = query(sessionsCollectionRef, where('date', '==', selectedDate));
+      const querySnapshot = await getDocs(q);
+
+      const sessions = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setSessionsForSelectedDate(sessions);
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedDate) {
+      fetchSessionsForSelectedDate();
+    }
+  }, [selectedDate]);
+
+
+
+  // Check if the selected time range conflicts with existing sessions
+  const checkForConflicts = (newStartTime: string, newEndTime: string) => {
+    const newStartMinutes = timeToMinutes(newStartTime);
+    const newEndMinutes = timeToMinutes(newEndTime);
+
+    for (const session of sessionsForSelectedDate) {
+      const sessionStartMinutes = timeToMinutes(session.startTime);
+      const sessionEndMinutes = timeToMinutes(session.endTime);
+
+      // Check if new session overlaps with any existing session
+      if (
+        (newStartMinutes < sessionEndMinutes && newStartMinutes >= sessionStartMinutes) ||
+        (newEndMinutes > sessionStartMinutes && newEndMinutes <= sessionEndMinutes) ||
+        (newStartMinutes <= sessionStartMinutes && newEndMinutes >= sessionEndMinutes)
+      ) {
+        return true; // Conflict found
+      }
+    }
+
+    return false; // No conflict
+  };
+
+
+
+
+
   const getItem = (_data: unknown, index: number) => ({
     id: timeSlots[index],
     title: timeSlots[index],
@@ -109,11 +195,11 @@ export default function CreateSession() {
     </SafeAreaView>
   );
 
-  // Handle location selection for areas or clinics based on session type
+   // Handle location selection for areas or clinics based on session type
   const LocationSelector = ({ locations }: { locations: string[] }) => {
     const getItem = (_data: unknown, index: number) => ({
       id: locations[index],
-      title: locations[index],
+      title:locations[index],
     });
 
     const getItemCount = (_data: unknown) => locations.length;
@@ -144,22 +230,39 @@ export default function CreateSession() {
 
   // Function to save the session data to Firestore under the midwife's sub-collection
   const createSession = async () => {
-    try {
-      const midwifeDocRef = doc(db, 'Midwives', midwifeDocumentID);
-      const sessionsCollectionRef = collection(midwifeDocRef, 'MidwifeSessions');
-
-      await addDoc(sessionsCollectionRef, {
-        selectedDate,
-        startTime,
-        endTime,
-        sessionType,
-        selectedLocation,
-      });
-      Alert.alert('Success', 'Session created successfully!');
-    } catch (error) {
-      console.error('Error creating session:', error);
-      Alert.alert('Error', 'Failed to create session.');
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+    // Validate that the start time is before the end time
+    if (startMinutes >= endMinutes) {
+      Alert.alert('Error', 'Start time must be earlier than end time.');
+      return; // Exit early if the validation fails
     }
+    const conflict = checkForConflicts(startTime, endTime);
+      if (conflict) {
+        Alert.alert('Error', 'Selected time conflicts with another session.');
+      }else{
+        try {
+          const midwifeDocRef = doc(db, 'Midwives', midwifeDocumentID);
+          const sessionsCollectionRef = collection(midwifeDocRef, 'MidwifeSessions');
+    
+          await addDoc(sessionsCollectionRef, {
+            date:selectedDate,
+            startTime,
+            endTime,
+            sessionType,
+            location:selectedLocation,
+            noOfSlots,
+            bookedSlots:[],
+          });
+          Alert.alert('Success', 'Session created successfully!');
+          router.navigate({
+            pathname: '/appointments/sheduleSessions',
+        });
+        } catch (error) {
+          console.error('Error creating session:', error);
+          Alert.alert('Error', 'Failed to create session.');
+        }
+      }
   };
 
   return (
@@ -179,7 +282,7 @@ export default function CreateSession() {
       <TimeSelector selectedTime={endTime} setTime={setEndTime} />
 
       {/* Session Type Toggle */}
-      <View className="bg-blue-400 my-2 mx-8 flex justify-center rounded-lg">
+      <View className="bg-blue-400 my-2 mx-8 mt-10 flex mb-5 justify-center rounded-lg">
         <Text className='ml-3 mt-3 text-lg font-semibold text-white'>Type</Text>
         <View className="flex-row justify-center mb-5 mt-1 bg-blue-300 w-3/6 mx-auto rounded-full">
           <TouchableOpacity
@@ -220,7 +323,7 @@ export default function CreateSession() {
 
 const styles = StyleSheet.create({
   timeSelectorContainer: {
-    flex: 1,
+    paddingVertical: 10,
   },
   timeSlot: {
     backgroundColor: '#ffffff',
