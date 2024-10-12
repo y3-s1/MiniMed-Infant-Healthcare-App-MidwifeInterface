@@ -98,6 +98,7 @@ export default function EventCreation() {
       return '';
     }
   };
+  navigation.setOptions({ title: 'Create Event' });
 
   const handleSubmit = async () => {
     try {
