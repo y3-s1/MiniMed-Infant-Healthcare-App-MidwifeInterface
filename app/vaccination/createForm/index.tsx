@@ -7,7 +7,6 @@ const AddVaccination = () => {
   return (
     <ScrollView style={{ flex: 1, padding: 10 }}>
     <View>
-      <Text>AddVaccination</Text>
 
       {/* create vaccination */}
       <CreateVaccinationSchedule/>

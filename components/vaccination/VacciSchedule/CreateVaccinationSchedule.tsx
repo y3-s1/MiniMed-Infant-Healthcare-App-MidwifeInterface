@@ -9,11 +9,12 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
-import { getDocs, collection, addDoc } from 'firebase/firestore';
+import { getDocs, collection, addDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../config/FireBaseConfig';
 import Toast from 'react-native-toast-message';
+import { useNavigation } from 'expo-router';
 
-const CreateVaccinationSchedule = () => {
+const CreateVaccinationSchedule = ({ loggedMidwifeId }: { loggedMidwifeId: string }) => {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
@@ -22,14 +23,20 @@ const CreateVaccinationSchedule = () => {
   const [endTime, setEndTime] = useState(new Date());
   const [selectedVaccine, setSelectedVaccine] = useState('');
   const [selectedCenter, setSelectedCenter] = useState('');
-  const [minAge, setMinAge] = useState('');
-  const [maxAge, setMaxAge] = useState('');
+  const [minYear, setMinYear] = useState('');
+  const [minMonth, setMinMonth] = useState('');
+  const [maxYear, setMaxYear] = useState('');
+  const [maxMonth, setMaxMonth] = useState('');
   const [searchText, setSearchText] = useState('');
   const [selectedArea, setSelectedArea] = useState(''); // New state for area filter
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
   const [vaccinationList, setVaccinationList] = useState([]); // Store fetched vaccines
   const [participants, setParticipants] = useState([]); // Store fetched participants
+  const [centers, setCenters] = useState([]); // Store fetched centers
+  const [areas, setAreas] = useState([]); // Store fetched working areas
   const [loading, setLoading] = useState(false);
+
+  const navigation = useNavigation();
 
   
 
@@ -43,8 +50,34 @@ const CreateVaccinationSchedule = () => {
   // ];
 
   useEffect(() => {
+    navigation.setOptions({
+      headerTitle: 'Create Vaccination Session',
+      headerStyle: {
+        backgroundColor: '#3b82f6', // Set the header background color
+      },
+      headerTintColor: '#fff', // Set the back arrow and title color
+    });
+
+    fetchMidwifeDetails();
     fetchVaccinationData();
   }, []);
+
+  const fetchMidwifeDetails = async () => {
+    try {
+      const midwifeDocRef = doc(db, 'Midwives', 'DZ3G0ZOnt8KzFRD3MI02'); // Reference to the midwife's document
+      const midwifeDoc = await getDoc(midwifeDocRef);
+      
+      if (midwifeDoc.exists()) {
+        const midwifeData = midwifeDoc.data();
+        setCenters(midwifeData.centers || []); // Set centers from fetched data
+        setAreas(midwifeData.workinArea || []); // Set working areas from fetched data
+      } else {
+        console.error('Midwife document not found');
+      }
+    } catch (error) {
+      console.error('Error fetching midwife data:', error);
+    }
+  };
 
 
   const fetchVaccinationData = async () => {
@@ -94,14 +127,17 @@ const CreateVaccinationSchedule = () => {
       console.log('childData', childData);
 
     // Use map instead of find to iterate and create merged data
-    const mergedData = childData.flat().map((rec) => ({
-      id: rec.id,
-      name: rec.name,
-      age: rec.age,
-      location: rec.location,
-      dob: rec.dob,
-      // Add more fields if necessary
-    }));
+    const mergedData = childData.flat().map(rec => {
+      const { years, months } = calculateAge(rec.birthday); 
+      return {
+        id: rec.id,
+        name: rec.name,
+        age: { years, months },
+        location: rec.location,
+        dob: rec.birthday,
+      };
+    });
+
 
     console.log('mergedData', mergedData);
 
@@ -114,6 +150,26 @@ const CreateVaccinationSchedule = () => {
       setLoading(false);
     }
   };
+
+  const calculateAge = (dobTimestamp:string) => {
+    const dob = new Date(dobTimestamp);
+    const today = new Date();
+
+    console.log('today', today)
+    console.log('dob', dob)
+
+    let years = today.getFullYear() - dob.getFullYear();
+    let months = today.getMonth() - dob.getMonth();
+
+    
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+
+    return { years, months };
+  };
+  
 
   // VirtualizedList specific functions
   const getItem = (data: any[], index: number) => data[index];
@@ -172,14 +228,16 @@ const CreateVaccinationSchedule = () => {
 
 const filteredParticipants = useMemo(() => {
   const filtered = participants.filter((participant) => {
+    const { years, months } = participant.age;
+    const totalMonths = years * 12 + months;
+
+    const minAgeInMonths = (minYear ? parseInt(minYear) : 0) * 12 + (minMonth ? parseInt(minMonth) : 0);
+    const maxAgeInMonths = (maxYear ? parseInt(maxYear) : 100) * 12 + (maxMonth ? parseInt(maxMonth) : 0);
+
+    const matchesAgeRange = totalMonths >= minAgeInMonths && totalMonths <= maxAgeInMonths;
     const matchesSearchText = participant.name.toLowerCase().includes(searchText.toLowerCase());
-    const participantAge = participant.age;
-    const minAgeValue = minAge ? parseInt(minAge) : null;
-    const maxAgeValue = maxAge ? parseInt(maxAge) : null;
-    const matchesAgeRange =
-      (minAgeValue === null || participantAge >= minAgeValue) &&
-      (maxAgeValue === null || participantAge <= maxAgeValue);
     const matchesArea = selectedArea === '' || participant.location === selectedArea;
+
     return matchesSearchText && matchesAgeRange && matchesArea;
   });
 
@@ -187,7 +245,7 @@ const filteredParticipants = useMemo(() => {
   setSelectedParticipants(selectedIds); // This will now only happen when the filter changes
 
   return filtered;
-}, [searchText, minAge, maxAge, selectedArea, participants]);
+}, [searchText, minYear, minMonth, maxYear, maxMonth, selectedArea, participants]);
 
   
 
@@ -208,7 +266,11 @@ const filteredParticipants = useMemo(() => {
   const submitVaccinationSession = async () => {
     try {
       // Create a new document in the "VaccinationSessions" collection
-      await addDoc(collection(db, 'VaccinationSessions'), {
+      const midwifeRef = doc(db, 'Midwives', 'DZ3G0ZOnt8KzFRD3MI02'); // Reference to the midwife's document
+      const sessionCollectionRef = collection(midwifeRef, 'VaccinationSessions'); // Subcollection reference
+
+      // Add a new document to the VaccinationSessions subcollection
+      await addDoc(sessionCollectionRef, {
         selectedParticipants, // Array of selected participant IDs
         selectedArea, // Area filter (if applied)
         selectedVaccine, // Selected vaccine ID
@@ -251,8 +313,9 @@ const filteredParticipants = useMemo(() => {
   return (
     <View style={styles.container}>
       {/* Date Selection */}
-      <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+      <TouchableOpacity className='flex-row' onPress={() => setShowDatePicker(true)}>
         <Text style={styles.dateText}>{date.toDateString()}</Text>
+        <Text className='text-zinc-600 ml-3' >( Pick a Date )</Text>
       </TouchableOpacity>
 
       {showDatePicker && (
@@ -307,51 +370,16 @@ const filteredParticipants = useMemo(() => {
       </Picker>
 
       {/* Center Selection */}
-      <Text style={styles.label}>Centre</Text>
-      <View style={styles.centerRow}>
-        <TouchableOpacity
-          onPress={() => setSelectedCenter('Kaduwela')}
-          style={
-            selectedCenter === 'Kaduwela' ? styles.selectedButton : styles.centerButton
-          }
-        >
-          <Text
-            style={
-              selectedCenter === 'Kaduwela' ? styles.selectedCenterText : styles.centerText
-            }
-          >
-            Kaduwela
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setSelectedCenter('Malabe')}
-          style={
-            selectedCenter === 'Malabe' ? styles.selectedButton : styles.centerButton
-          }
-        >
-          <Text
-            style={
-              selectedCenter === 'Malabe' ? styles.selectedCenterText : styles.centerText
-            }
-          >
-            Malabe
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setSelectedCenter('Biyagama')}
-          style={
-            selectedCenter === 'Biyagama' ? styles.selectedButton : styles.centerButton
-          }
-        >
-          <Text
-            style={
-              selectedCenter === 'Biyagama' ? styles.selectedCenterText : styles.centerText
-            }
-          >
-            Biyagama
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <Text style={styles.label}>Select Center</Text>
+      <Picker
+        selectedValue={selectedCenter}
+        onValueChange={itemValue => setSelectedCenter(itemValue)}
+        style={styles.picker}
+      >
+        {centers.map(center => (
+          <Picker.Item key={center} label={center} value={center} />
+        ))}
+      </Picker>
 
       {/* Search and Filter Participants */}
       <Text style={styles.label}>Select Participants</Text>
@@ -366,21 +394,39 @@ const filteredParticipants = useMemo(() => {
 
       {/* Filter by Age */}
       <Text style={styles.filterLabel}>Filter by Age</Text>
+      <View >
+        <View style={styles.ageInputRow}>
+        <TextInput
+          placeholder="Min Age (Years)"
+          value={minYear}
+          onChangeText={setMinYear}
+          keyboardType="numeric"
+          style={styles.ageInput}
+        />
+        <TextInput
+          placeholder="Min Age (Months)"
+          value={minMonth}
+          onChangeText={setMinMonth}
+          keyboardType="numeric"
+          style={styles.ageInput}
+        />
+      </View>
       <View style={styles.ageInputRow}>
         <TextInput
-          placeholder="Min Age (months)"
-          value={minAge}
-          onChangeText={setMinAge}
+          placeholder="Max Age (Years)"
+          value={maxYear}
+          onChangeText={setMaxYear}
           keyboardType="numeric"
           style={styles.ageInput}
         />
         <TextInput
-          placeholder="Max Age (months)"
-          value={maxAge}
-          onChangeText={setMaxAge}
+          placeholder="Max Age (Months)"
+          value={maxMonth}
+          onChangeText={setMaxMonth}
           keyboardType="numeric"
           style={styles.ageInput}
         />
+      </View>
       </View>
 
       {/* Filter by Area */}
@@ -390,11 +436,9 @@ const filteredParticipants = useMemo(() => {
         onValueChange={(itemValue) => setSelectedArea(itemValue)}
         style={styles.picker}
       >
-        <Picker.Item label="All Areas" value="" />
-        <Picker.Item label="Raddolugama" value="Raddolugama" />
-        <Picker.Item label="Kaduwela" value="Kaduwela" />
-        <Picker.Item label="Malabe" value="Malabe" />
-        {/* Add more areas as needed */}
+        {areas.map(area => (
+          <Picker.Item key={area} label={area} value={area} />
+        ))}
       </Picker>
 
       {/* Display Filtered Participants */}
@@ -410,8 +454,7 @@ const filteredParticipants = useMemo(() => {
               ]}
             >
               <Text>{item.name}</Text>
-              <Text>{item.age} months</Text>
-              <Text>Last Vaccination - {item.lastVaccine}</Text>
+              <Text>{item.age.years} years, {item.age.months} months</Text>
               <Text>Area - {item.location}</Text>
             </View>
           </TouchableOpacity>

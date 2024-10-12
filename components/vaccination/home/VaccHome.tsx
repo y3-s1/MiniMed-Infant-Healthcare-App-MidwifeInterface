@@ -20,16 +20,16 @@ const VaccHome = () => {
 
         <TouchableOpacity
           style={styles.buttonSecondary}
-          // onPress={() => navigation.navigate('ScheduleVaccinations')}
+          onPress={() => router.navigate('/vaccination/upcomingVaccinations')}
         >
           <Text style={styles.buttonTextSecondary}>Schedule Vaccinations</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.buttonSecondary}
-          // onPress={() => navigation.navigate('UpcomingVaccinations')}
+          onPress={() => router.navigate('/vaccination/allVaccinationSessions')}
         >
-          <Text style={styles.buttonTextSecondary}>Upcoming Vaccinations</Text>
+          <Text style={styles.buttonTextSecondary}>All Vaccinations</Text>
         </TouchableOpacity>
       </View>
 
