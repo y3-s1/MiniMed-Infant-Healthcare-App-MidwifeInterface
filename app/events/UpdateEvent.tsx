@@ -48,6 +48,13 @@ export default function UpdateEvent() {
                     setEventDate(new Date(eventData.EventDate));
                     setEventImageName(eventData.EventImage);
 
+
+                     // Convert human-readable address to coordinates
+                     const location = await getCoordsFromAddress(eventData.EventLocation);
+                     setEventLocation(location); // Store the location coordinates
+                     setEventAddress(eventData.EventLocation); // Store human-readable address
+ 
+
                     // Fetch organizer details using EventOrganizer ID
                     const organizerDoc = await getDoc(doc(db, 'Midwives', eventData.EventOrganizer));
                     if (organizerDoc.exists()) {
@@ -63,6 +70,40 @@ export default function UpdateEvent() {
 
         fetchEventDetails();
     }, [id, navigation]); // Ensure navigation is in the dependencies array
+
+
+
+
+    // Convert address to latitude and longitude
+    const getCoordsFromAddress = async (address: string) => {
+        try {
+            const geocode = await Location.geocodeAsync(address);
+            if (geocode.length > 0) {
+                const { latitude, longitude } = geocode[0];
+                return { latitude, longitude };
+            }
+            return { latitude: 0, longitude: 0 };
+        } catch (error) {
+            console.error('Error converting address to coordinates:', error);
+            return { latitude: 0, longitude: 0 };
+        }
+    };
+
+
+    // Convert coordinates to human-readable address
+    const getAddressFromCoords = async (latitude: number, longitude: number) => {
+        try {
+            const result = await Location.reverseGeocodeAsync({ latitude, longitude });
+            if (result.length > 0) {
+                const { city, street, country } = result[0];
+                return `${street}, ${city}, ${country}`;
+            }
+            return '';
+        } catch (error) {
+            console.error("Error getting address:", error);
+            return '';
+        }
+    };
 
     const handleDateChange = (event: any, selectedDate?: Date) => {
         const currentDate = selectedDate || eventDate;
@@ -100,28 +141,24 @@ export default function UpdateEvent() {
     const handleMapPress = async (event: any) => {
         const { coordinate } = event.nativeEvent;
         setEventLocation(coordinate);
+
+        // Convert coordinates back to a human-readable address
         const address = await getAddressFromCoords(coordinate.latitude, coordinate.longitude);
         setEventAddress(address);
         setShowMap(false);
     };
 
-    const getAddressFromCoords = async (latitude: number, longitude: number) => {
-        try {
-            const result = await Location.reverseGeocodeAsync({ latitude, longitude });
-            if (result.length > 0) {
-                const { city, street, country } = result[0];
-                return `${street}, ${city}, ${country}`;
-            }
-            return '';
-        } catch (error) {
-            console.error("Error getting address:", error);
-            return '';
-        }
-    };
+    
 
     const handleSubmit = async () => {
         try {
             const eventRef = doc(db, 'Events', id);
+            // Convert the updated eventAddress back to latitude and longitude before submitting
+            const location = await getCoordsFromAddress(eventAddress);
+            if (location.latitude === 0 && location.longitude === 0) {
+                Alert.alert('Error', 'Invalid address');
+                return;
+            }
             await updateDoc(eventRef, {
                 EventTitle: eventTitle,
                 EventDescription: eventDescription,
@@ -180,16 +217,11 @@ export default function UpdateEvent() {
                 multiline
                 placeholderTextColor="#999"
             />
-
-            <Text style={styles.label}>Event Location</Text>
+ <Text style={styles.label}>Event Location</Text>
             <TouchableOpacity onPress={() => setShowMap(true)} style={styles.locationPicker}>
                 <Text style={styles.locationPickerText}>
                     {eventAddress || 'Pick a location'}
                 </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={getCurrentLocation} style={styles.currentLocationButton}>
-                <Text style={styles.currentLocationButtonText}>Use Current Location</Text>
             </TouchableOpacity>
 
             {showMap && (
