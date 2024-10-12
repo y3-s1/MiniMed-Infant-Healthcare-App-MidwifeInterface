@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Button, Alert, ActivityIndicator, TouchableOpacity, FlatList } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../../config/FireBaseConfig'; // Ensure the correct Firebase config path
@@ -15,26 +15,30 @@ interface Session {
   noOfSlots: number;
 }
 
+const areas = ['Malabe', 'Gampaha', 'Kaduwela', 'Biyagama', 'Kelaniya', 'Baththaramulla', 'Rajagiriya'];
+const clinics = ['Kaduwela', 'Malabe', 'Nugegoda', 'Biyagama', 'Rajagiriya', 'Kelaniya'];
+
+// Manually setting the midwife document ID (replace with dynamic ID once login is implemented)
+const midwifeDocumentID = 'DZ3G0ZOnt8KzFRD3MI02';
+
 export default function EditSessions() {
   const route = useRoute();
   const navigation = useNavigation();
-  
   const { sessionId } = route.params as { sessionId: string };
 
   const [loading, setLoading] = useState<boolean>(true);
   const [sessionData, setSessionData] = useState<Session | null>(null);
-
   const [startTime, setStartTime] = useState<string>('');
   const [endTime, setEndTime] = useState<string>('');
   const [location, setLocation] = useState<string>('');
-  const [sessionType, setSessionType] = useState<string>('');
+  const [sessionType, setSessionType] = useState<string>('Home Visit');
   const [noOfSlots, setNoOfSlots] = useState<number>(0);
 
   useEffect(() => {
     const fetchSessionDetails = async () => {
       setLoading(true);
       try {
-        const sessionRef = doc(db, `Midwives/DZ3G0ZOnt8KzFRD3MI02/MidwifeSessions`, sessionId); // Adjust the midwife ID if needed
+        const sessionRef = doc(db, `Midwives/${midwifeDocumentID}/MidwifeSessions`, sessionId);
         const docSnapshot = await getDoc(sessionRef);
 
         if (docSnapshot.exists()) {
@@ -68,7 +72,7 @@ export default function EditSessions() {
 
     setLoading(true);
     try {
-      const sessionRef = doc(db, `Midwives/DZ3G0ZOnt8KzFRD3MI02/MidwifeSessions`, sessionId); // Adjust the midwife ID if needed
+      const sessionRef = doc(db, `Midwives/${midwifeDocumentID}/MidwifeSessions`, sessionId); // Adjust the midwife ID if needed
       await updateDoc(sessionRef, {
         startTime,
         endTime,
@@ -95,61 +99,58 @@ export default function EditSessions() {
     );
   }
 
+  // Location Selector component to handle areas or clinics based on session type
+  const LocationSelector = ({ locations }: { locations: string[] }) => {
+    return (
+      <FlatList
+        data={locations}
+        keyExtractor={(item) => item}
+        renderItem={({ item }) => (
+          <TouchableOpacity onPress={() => setLocation(item)}>
+            <Text className={`p-2 ${location === item ? 'bg-blue-300 text-white' : ''}`}>{item}</Text>
+          </TouchableOpacity>
+        )}
+      />
+    );
+  };
+
   return (
     <View className="p-4">
       <Text className="text-lg font-bold mb-2">Edit Session</Text>
-      <View className="mb-4">
-        <Text className="text-base font-semibold mb-1">Start Time:</Text>
-        <TextInput
-          value={startTime}
-          onChangeText={setStartTime}
-          className="border border-gray-300 p-2 rounded"
-          placeholder="Enter start time (e.g., 4:00 PM)"
-        />
+      
+
+      {/* Session Type Selector */}
+      <View className="bg-blue-400 my-2 mx-8 mt-10 flex mb-5 justify-center rounded-lg">
+        <Text className="ml-3 mt-3 text-lg font-semibold text-white">Type</Text>
+        <View className="flex-row justify-center mb-5 mt-1 bg-blue-300 w-3/6 mx-auto rounded-full">
+          <TouchableOpacity
+            onPress={() => setSessionType('Home Visit')}
+            className={`px-6 py-2 rounded-full ${sessionType === 'Home Visit' ? 'bg-white' : 'bg-blue-300'}`}
+          >
+            <Text className={`${sessionType === 'Home Visit' ? 'text-blue-500' : 'text-white'} font-poppins`}>
+              Home Visit
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setSessionType('Clinic')}
+            className={`mx-4 px-6 py-2 rounded-full ${sessionType === 'Clinic' ? 'bg-white' : 'bg-blue-300'}`}
+          >
+            <Text className={`${sessionType === 'Clinic' ? 'text-blue-500' : 'text-white'} font-poppins`}>
+              Clinic
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <View className="mb-4">
-        <Text className="text-base font-semibold mb-1">End Time:</Text>
-        <TextInput
-          value={endTime}
-          onChangeText={setEndTime}
-          className="border border-gray-300 p-2 rounded"
-          placeholder="Enter end time (e.g., 5:00 PM)"
-        />
-      </View>
+      {/* Location Selector */}
+      <Text className="text-lg my-2">{sessionType === 'Home Visit' ? 'Select Area' : 'Select Clinic'}</Text>
+      {sessionType === 'Home Visit' ? <LocationSelector locations={areas} /> : <LocationSelector locations={clinics} />}
 
-      <View className="mb-4">
-        <Text className="text-base font-semibold mb-1">Location:</Text>
-        <TextInput
-          value={location}
-          onChangeText={setLocation}
-          className="border border-gray-300 p-2 rounded"
-          placeholder="Enter location"
-        />
-      </View>
-
-      <View className="mb-4">
-        <Text className="text-base font-semibold mb-1">Session Type:</Text>
-        <TextInput
-          value={sessionType}
-          onChangeText={setSessionType}
-          className="border border-gray-300 p-2 rounded"
-          placeholder="Enter session type (Clinic or Home Visit)"
-        />
-      </View>
-
-      <View className="mb-4">
-        <Text className="text-base font-semibold mb-1">Number of Slots:</Text>
-        <TextInput
-          value={noOfSlots.toString()}
-          onChangeText={(value) => setNoOfSlots(parseInt(value))}
-          keyboardType="numeric"
-          className="border border-gray-300 p-2 rounded"
-          placeholder="Enter number of slots"
-        />
-      </View>
-
-      <Button title="Save Changes" onPress={handleSaveChanges} />
+      {/* Save Changes Button */}
+      <TouchableOpacity className="bg-blue-500 p-4 rounded-lg mt-3 items-center mb-5" onPress={handleSaveChanges}>
+        <Text className="text-white text-lg">Save Changes</Text>
+      </TouchableOpacity>
     </View>
   );
 }

@@ -5,12 +5,11 @@ import { addDoc, collection, doc, getDocs, query, where } from 'firebase/firesto
 import { db } from '@/config/FireBaseConfig';
 
 const areas = [
-  'Malabe', 'Kampala', 'Kibale', 'Jinja', 'Gulu', 'Kasese', 'Mbarara', 'Mubende', 'Mityana',
-  'Nakapi', 'Nakasongola', 'Nebbi', 'Ntungamo', 'Rakai', 'Sembabule',
+  'Malabe', 'Gampaha', 'Kaduwela', 'Biyagama', 'Kelaniya', 'Baththaramulla', 'Rajagiriya',
 ];
 
 const clinics = [
-  'Kaduwela', 'Malabe', 'Nugegoda', 'Kampala', 'Kibale', 'Jinja',
+  'Kaduwela', 'Malabe', 'Nugegoda', 'Biyagama', 'Rajagiriya', 'Kelaniya',
 ];
 
 // Manually setting the midwife document ID (replace with dynamic ID once login is implemented)
@@ -196,11 +195,11 @@ export default function CreateSession() {
     </SafeAreaView>
   );
 
-  // Handle location selection for areas or clinics based on session type
+   // Handle location selection for areas or clinics based on session type
   const LocationSelector = ({ locations }: { locations: string[] }) => {
     const getItem = (_data: unknown, index: number) => ({
       id: locations[index],
-      title: locations[index],
+      title:locations[index],
     });
 
     const getItemCount = (_data: unknown) => locations.length;

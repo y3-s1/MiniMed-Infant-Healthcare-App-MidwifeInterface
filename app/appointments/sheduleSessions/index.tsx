@@ -153,52 +153,65 @@ export default function ScheduleSessions() {
 
 
   // Function to handle session deletion with confirmation
-  const deleteSession = (sessionId: string) => {
-    Alert.alert(
-      'Confirm Deletion',
-      'Are you sure you want to delete this session?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          onPress: async () => {
-            try {
-              await deleteDoc(doc(db, `Midwives/${midwifeDocumentID}/MidwifeSessions`, sessionId));
-              // After deletion, refetch the sessions to update the list
-              Alert.alert('Success', 'Session deleted successfully');
-              fetchSessions(selectedDate); // Make sure `selectedDate` is available in scope
-            } catch (error) {
-              console.error("Error deleting session:", error);
-              Alert.alert('Error', 'Failed to delete the session');
-            }
+  const deleteSession = (session: Session) => {
+    if (session.bookedSlots.length > 0) {
+      // Display an error if there are booked slots
+      Alert.alert('Cannot Delete', 'This session has booked slots and cannot be deleted.');
+    } else {
+      Alert.alert(
+        'Confirm Deletion',
+        'Are you sure you want to delete this session?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
           },
-          style: 'destructive', // Use the destructive style for delete buttons
-        },
-      ],
-      { cancelable: true } // User can dismiss the alert by clicking outside it
-    );
+          {
+            text: 'Delete',
+            onPress: async () => {
+              try {
+                await deleteDoc(doc(db, `Midwives/${midwifeDocumentID}/MidwifeSessions`, session.id));
+                // After deletion, refetch the sessions to update the list
+                Alert.alert('Success', 'Session deleted successfully');
+                fetchSessions(selectedDate); // Make sure `selectedDate` is available in scope
+              } catch (error) {
+                console.error("Error deleting session:", error);
+                Alert.alert('Error', 'Failed to delete the session');
+              }
+            },
+            style: 'destructive', // Use the destructive style for delete buttons
+          },
+        ],
+        { cancelable: true } // User can dismiss the alert by clicking outside it
+      );
+    }
+    
   };
 
 
-  // Function to handle session editing (navigate to the edit screen)
+  // Function to handle session editing (navigate to the edit screen only if no booked slots)
   const editSession = (session: Session) => {
-    router.navigate({
-      pathname: '/appointments/editSessions',
-      params: {
-        sessionId: session.id,
-        startTime: session.startTime,
-        endTime: session.endTime,
-        location: session.location,
-        bookedSlots: session.bookedSlots,
-        sessionType: session.sessionType,
-        date: session.date,
-        noOfSlots: session.noOfSlots,
-      },
-    });
+    if (session.bookedSlots.length > 0) {
+      // Display an error if there are booked slots
+      Alert.alert('Cannot Edit', 'This session has booked slots and cannot be edited.');
+    } else {
+      // Proceed to navigate to the edit screen if no booked slots
+      router.navigate({
+        pathname: '/appointments/editSessions',
+        params: {
+          sessionId: session.id,
+          startTime: session.startTime,
+          endTime: session.endTime,
+          location: session.location,
+          bookedSlots: session.bookedSlots,
+          sessionType: session.sessionType,
+          date: session.date,
+          noOfSlots: session.noOfSlots,
+        },
+      });
+    }
   };
+
   
 
   // Define the render function for sessions
@@ -229,7 +242,7 @@ export default function ScheduleSessions() {
             <TouchableOpacity onPress={() => editSession(item)}>
               <Text className="text-white font-bold bg-blue-400 p-2 px-4 rounded-lg">Edit</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => deleteSession(item.id)}>
+            <TouchableOpacity onPress={() => deleteSession(item)}>
               <Text className="text-white font-bold bg-red-500 p-2 rounded-lg">Delete</Text>
             </TouchableOpacity>
           </View>
