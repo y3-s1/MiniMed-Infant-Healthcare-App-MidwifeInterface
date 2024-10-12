@@ -9,7 +9,6 @@ const SessionUpdstePsge = () => {
     const { sessionId } = route.params;
   return (
     <View className='flex-1'>
-      <Text>SessionUpdstePsge</Text>
       <EditVaccinationSchedule sessionId={sessionId}/>
     </View>
   )

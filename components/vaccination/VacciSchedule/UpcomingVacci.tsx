@@ -149,6 +149,14 @@ const UpcomingVacci = () => {
       ) : (
         <Text style={styles.noSessionsText}>No scheduled vaccination for today.</Text>
       )}
+
+<TouchableOpacity 
+  style={styles.addButton}
+  onPress={() => router.navigate('/vaccination/createForm')}
+>
+  <Text style={styles.buttonText}>Add Session</Text>
+</TouchableOpacity>
+
     </View>
   );
 };
@@ -169,6 +177,22 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     marginRight: 10,
   },
+  addButton: {
+    position: 'absolute',
+    bottom: 50,
+    right: 30,
+    backgroundColor: '#0b66c7',
+    borderRadius: 50,
+    paddingVertical: 20,
+    paddingHorizontal: 30,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },  
   dateText2: {
     color: '#b0b0b0',
   },

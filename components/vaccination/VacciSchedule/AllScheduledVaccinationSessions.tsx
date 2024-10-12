@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { collection, doc, getDocs, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/config/FireBaseConfig';
-import { useNavigation } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 // Optionally import SearchBar from react-native-elements if you prefer it:
 // import { SearchBar } from 'react-native-elements'; 
 
@@ -93,7 +93,14 @@ const AllScheduledVaccinationSessions = () => {
       <Text style={styles.sessionLocation}>{item.location}</Text>
       <Text style={styles.bookedSlots}>Booked Slots: {item.bookedSlots}</Text>
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.viewButton}>
+        <TouchableOpacity 
+        style={styles.viewButton}
+        onPress={() => {
+          router.navigate({
+            pathname: '/vaccination/vaccineSessionDetails',
+            params: { sessionId: item.id },
+          });
+        }}>
           <Text style={styles.viewButtonText}>View</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteSession(item.id)}>

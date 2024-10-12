@@ -268,7 +268,7 @@ const filteredParticipants = useMemo(() => {
       // Create a new document in the "VaccinationSessions" collection
       const midwifeRef = doc(db, 'Midwives', 'DZ3G0ZOnt8KzFRD3MI02'); // Reference to the midwife's document
       const sessionCollectionRef = collection(midwifeRef, 'VaccinationSessions'); // Subcollection reference
-
+  
       // Add a new document to the VaccinationSessions subcollection
       await addDoc(sessionCollectionRef, {
         selectedParticipants, // Array of selected participant IDs
@@ -282,24 +282,40 @@ const filteredParticipants = useMemo(() => {
       });
   
       // Show success toast
-    Toast.show({
-      type: 'success',
-      text1: 'Success',
-      text2: 'Vaccination session successfully added!',
-      position: 'bottom',
-    });
-  } catch (error) {
-    console.error('Error adding vaccination session:', error);
-
-    // Show error toast
-    Toast.show({
-      type: 'error',
-      text1: 'Error',
-      text2: 'Failed to add vaccination session. Please try again.',
-      position: 'bottom',
-    });
-  }
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Vaccination session successfully added!',
+        position: 'bottom',
+      });
+  
+      // Reset all state values
+      setDate(new Date());
+      setStartTime(new Date());
+      setEndTime(new Date());
+      setSelectedVaccine(''); // Reset selected vaccine
+      setSelectedCenter('');  // Reset selected center
+      setMinYear('');
+      setMinMonth('');
+      setMaxYear('');
+      setMaxMonth('');
+      setSearchText('');  // Clear search text
+      setSelectedArea(''); // Reset selected area
+      setSelectedParticipants([]); // Reset selected participants
+  
+    } catch (error) {
+      console.error('Error adding vaccination session:', error);
+  
+      // Show error toast
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to add vaccination session. Please try again.',
+        position: 'bottom',
+      });
+    }
   };
+  
   
 
   const submit =() => {
