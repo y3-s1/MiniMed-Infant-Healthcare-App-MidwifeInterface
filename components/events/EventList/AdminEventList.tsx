@@ -140,6 +140,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 20,
+    marginTop: 30,
     color: '#333',
   },
   searchInput: {
