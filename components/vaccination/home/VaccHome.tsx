@@ -7,41 +7,33 @@ const VaccHome = () => {
   return (
     <View style={styles.container}>
       <Image
-        source={{ uri: 'https://th.bing.com/th/id/OIP.4bsmHh7S0U9rrg0mbIu4CwHaE8?w=278&h=185&c=7&r=0&o=5&dpr=1.3&pid=1.7' }} // Replace with the actual image URL
+        source={{ uri: 'https://th.bing.com/th/id/OIP.4bsmHh7S0U9rrg0mbIu4CwHaE8?w=278&h=185&c=7&r=0&o=5&dpr=1.3&pid=1.7' }} 
         style={styles.image}
       />
       <View style={styles.tabButton}>
-        <TouchableOpacity
-          style={styles.buttonPrimary}
-          // onPress={() => navigation.navigate('TodayVaccinations')}
-        >
-          <Text style={styles.buttonTextPrimary}>Today Vaccinations</Text>
-        </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.buttonSecondary}
-          // onPress={() => navigation.navigate('ScheduleVaccinations')}
+          style={[styles.buttonSecondary, styles.scheduleButton]} // Add custom style
+          onPress={() => router.navigate('/vaccination/upcomingVaccinations')}
         >
           <Text style={styles.buttonTextSecondary}>Schedule Vaccinations</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.buttonSecondary}
-          // onPress={() => navigation.navigate('UpcomingVaccinations')}
+          style={[styles.buttonSecondary, styles.allVaccinationsButton]} // Add custom style
+          onPress={() => router.navigate('/vaccination/allVaccinationSessions')}
         >
-          <Text style={styles.buttonTextSecondary}>Upcoming Vaccinations</Text>
+          <Text style={styles.buttonTextSecondary}>All Vaccinations</Text>
         </TouchableOpacity>
       </View>
 
       {/* Add button at the bottom */}
-      <View style={styles.addButtonContainer}>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => router.navigate('/vaccination/createForm')}
-        >
-          <Text style={styles.addButtonText}>Add</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity 
+        style={styles.addButton}
+        onPress={() => router.navigate('/vaccination/createForm')}
+      >
+        <Text style={styles.buttonText}>Add Session</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -49,7 +41,8 @@ const VaccHome = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#F6F8FB', // Light, clean background
+    padding: 20,
   },
   image: {
     width: '100%',
@@ -57,53 +50,69 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 30,
     borderBottomLeftRadius: 30,
     marginBottom: 30,
+    resizeMode: 'cover',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   buttonPrimary: {
-    backgroundColor: '#43B0F1',
+    backgroundColor: '#1E4E8C',
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 20,
     width: '80%',
     alignItems: 'center',
-  },
-  buttonTextPrimary: {
-    color: '#fff',
-    fontSize: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   tabButton: {
     alignItems: 'center',
   },
   buttonSecondary: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 20,
     width: '80%',
-    borderWidth: 1,
-    borderColor: '#ccc',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
   buttonTextSecondary: {
-    color: '#000',
-    fontSize: 18,
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '600',
   },
-  addButtonContainer: {
-    position: 'absolute',
-    bottom: 30, // Adjust this to control how far from the bottom the button is
-    width: '100%',
-    alignItems: 'center',
+  scheduleButton: {
+    backgroundColor: '#7d9ffe', // Custom color for "Schedule Vaccinations"
+  },
+  allVaccinationsButton: {
+    backgroundColor: '#7d9ffe', // Custom color for "All Vaccinations"
   },
   addButton: {
-    backgroundColor: '#43B0F1',
-    paddingVertical: 15,
-    paddingHorizontal: 40,
+    position: 'absolute',
+    bottom: 50,
+    right: 30,
+    backgroundColor: '#0b66c7',
     borderRadius: 50,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+    paddingVertical: 20,
+    paddingHorizontal: 30,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },  
 });
 
 export default VaccHome;
