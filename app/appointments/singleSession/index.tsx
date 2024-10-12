@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/config/FireBaseConfig';
+import openMap from 'react-native-open-maps'; // Import openMap function
 
 const Index = () => {
   const { sessionId, startTime, endTime, location, bookedSlots, sessionType, date, noOfSlots, index } = useLocalSearchParams();
@@ -68,7 +69,7 @@ const Index = () => {
     Alert.alert('Success', 'Session Completed successfully!');
     setSessionStarted(false); // Set session to ended
     router.navigate({
-        pathname: '/appointments/todaySessions',
+      pathname: '/appointments/todaySessions',
     });
   };
 
@@ -96,6 +97,11 @@ const Index = () => {
   const cancelAppointment = (appointmentId) => {
     Alert.alert('Success', 'Appointment Cancelled successfully!');
     updateAppointmentStatus(appointmentId, 'Cancelled');
+  };
+
+  // Function to navigate to the appointment's location
+  const navigateToLocation = (locationCode) => {
+    openMap({ query: locationCode });
   };
 
   return (
@@ -139,7 +145,7 @@ const Index = () => {
       </View>
 
       {/* Appointments List */}
-      <View className=" p-4 rounded-lg shadow-md">
+      <View className="p-4 rounded-lg shadow-md">
         <Text className="text-xl font-semibold text-gray-800 mb-4">Appointments</Text>
         {appointments.length === 0 ? (
           <Text className="text-center text-gray-500">No appointments available for this session</Text>
@@ -150,6 +156,12 @@ const Index = () => {
                 <Text className="text-lg font-semibold text-gray-800">Child ID: {appointment.child}</Text>
                 <Text className="text-lg text-gray-600">Time Slot: {appointment.timeSlot}</Text>
                 <Text className="text-lg text-gray-600">Status: {appointment.status}</Text>
+                <View>
+                {/* Navigate Button */}
+                <TouchableOpacity className='mt-2' onPress={() => navigateToLocation(appointment.locationCode)}>
+                  <Text className="text-sm text-center text-white font-bold p-1 px-4 rounded-lg bg-green-400">Navigate</Text>
+                </TouchableOpacity>
+              </View>
               </View>
               <View className="flex-row gap-2 mb-3 pt-3 justify-center mx-auto my-auto">
                 <TouchableOpacity onPress={() => completeAppointment(appointment.id)} disabled={!sessionStarted}>
